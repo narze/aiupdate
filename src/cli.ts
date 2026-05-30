@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'url';
+import { realpathSync } from 'fs';
 import { Listr } from 'listr2';
 import { execa, ExecaError } from 'execa';
 
@@ -107,7 +108,7 @@ export async function run(
   return !hasFailures;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const success = await run(process.argv.slice(2));
   if (!success) process.exit(1);
 }
