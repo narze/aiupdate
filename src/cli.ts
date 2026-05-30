@@ -13,6 +13,7 @@ const AI_TOOLS: Tool[] = [
   { name: 'claude', command: 'claude', args: ['update'], versioned: true },
   { name: 'codex', command: 'codex', args: ['update'], versioned: true },
   { name: 'opencode', command: 'opencode', args: ['upgrade'], versioned: true },
+  { name: 'cursor-agent', command: 'cursor-agent', args: ['update'], versioned: true },
 ];
 
 const SKILLS_TASK: Tool = {
