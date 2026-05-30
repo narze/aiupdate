@@ -1,10 +1,10 @@
 {
-  "name": "aiup",
+  "name": "aiupdate",
   "version": "0.1.0",
   "description": "Update all your AI agent CLIs and skills concurrently",
   "type": "module",
   "bin": {
-    "aiup": "dist/cli.js"
+    "aiupdate": "dist/cli.js"
   },
   "files": [
     "dist"

@@ -1,9 +1,9 @@
 ---
 name: add-agent
-description: Add a new AI agent CLI tool to aiup. Use when a contributor wants to add support for a new agent (e.g. "add gemini", "support windsurf", "add <tool> to aiup").
+description: Add a new AI agent CLI tool to aiupdate. Use when a contributor wants to add support for a new agent (e.g. "add gemini", "support windsurf", "add <tool> to aiupdate").
 ---
 
-Add a new AI agent CLI tool to aiup by following these steps:
+Add a new AI agent CLI tool to aiupdate by following these steps:
 
 ## 1. Verify the tool is a real CLI
 
@@ -43,7 +43,7 @@ Open `src/cli.ts` and add one line to the `AI_TOOLS` array:
 
 ```bash
 pnpm run build
-aiup <tool>   # targeted run — confirm spinner shows and version is reported
+aiupdate <tool>   # targeted run — confirm spinner shows and version is reported
 ```
 
 ## 6. Commit
@@ -55,7 +55,7 @@ git commit -m "Add <tool> to update list"
 
 ## Notes
 
-- `versioned: true` → aiup shows "up to date (x.y.z)" or "x.y.z → a.b.c" after update
+- `versioned: true` → aiupdate shows "up to date (x.y.z)" or "x.y.z → a.b.c" after update
 - `versioned: false` → just shows ✔ with no version info (use when `--version` output doesn't contain semver)
 - Tools not installed on the user's machine are silently skipped at runtime — safe to add any tool
 - The `skills` task (`npx skills update -g -p -y`) always runs regardless of targeted args — don't add it to `AI_TOOLS`

@@ -1,4 +1,4 @@
-# aiup
+# aiupdate
 
 Updates all AI agent CLIs and skills concurrently.
 
@@ -7,10 +7,10 @@ Updates all AI agent CLIs and skills concurrently.
 ```bash
 pnpm run build   # compile src/cli.ts → dist/cli.js
 pnpm run dev     # run without building (tsx)
-aiup             # update all tools + skills
-aiup claude      # target a single tool (skills skipped)
-aiup claude codex  # target multiple tools (skills skipped)
-aiup skills      # update skills only
+aiupdate             # update all tools + skills
+aiupdate claude      # target a single tool (skills skipped)
+aiupdate claude codex  # target multiple tools (skills skipped)
+aiupdate skills      # update skills only
 ```
 
 ## Adding a new tool
@@ -30,7 +30,7 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 ## Key files
 
 - `src/cli.ts` — entire implementation (single file)
-- `dist/cli.js` — compiled output, referenced by `bin.aiup` in package.json
+- `dist/cli.js` — compiled output, referenced by `bin.aiupdate` in package.json
 
 ## Versioning
 

@@ -1,24 +1,24 @@
-# aiup
+# aiupdate
 
 Update all your AI agent CLIs and skills concurrently.
 
 ## Usage
 
 ```bash
-npx aiup                        # update everything (tools + skills)
-npx aiup claude                 # update one tool (skills skipped)
-npx aiup claude codex opencode  # update specific tools (skills skipped)
-npx aiup skills                 # update skills only
-npx aiup claude skills          # update one tool + skills
+npx aiupdate                        # update everything (tools + skills)
+npx aiupdate claude                 # update one tool (skills skipped)
+npx aiupdate claude codex opencode  # update specific tools (skills skipped)
+npx aiupdate skills                 # update skills only
+npx aiupdate claude skills          # update one tool + skills
 ```
 
 Or install globally:
 
 ```bash
-npm install -g aiup
+npm install -g aiupdate
 ```
 
-Each tool runs concurrently. After updating, aiup shows the version change (or "up to date") for each tool.
+Each tool runs concurrently. After updating, aiupdate shows the version change (or "up to date") for each tool.
 
 ## What it updates
 
@@ -47,5 +47,5 @@ Then build and test:
 
 ```bash
 pnpm run build
-aiup mytool
+aiupdate mytool
 ```
