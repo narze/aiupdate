@@ -6,12 +6,13 @@ interface Tool {
   name: string;
   command: string;
   args: string[];
+  versioned?: boolean;
 }
 
 const AI_TOOLS: Tool[] = [
-  { name: 'claude', command: 'claude', args: ['update'] },
-  { name: 'codex', command: 'codex', args: ['update'] },
-  { name: 'opencode', command: 'opencode', args: ['upgrade'] },
+  { name: 'claude', command: 'claude', args: ['update'], versioned: true },
+  { name: 'codex', command: 'codex', args: ['update'], versioned: true },
+  { name: 'opencode', command: 'opencode', args: ['upgrade'], versioned: true },
 ];
 
 const SKILLS_TASK: Tool = {
@@ -26,6 +27,16 @@ async function isInstalled(command: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function getVersion(command: string): Promise<string | null> {
+  try {
+    const { stdout } = await execa(command, ['--version']);
+    const match = stdout.match(/\d+\.\d+\.\d+/);
+    return match ? match[0] : null;
+  } catch {
+    return null;
   }
 }
 
@@ -44,13 +55,21 @@ let hasFailures = false;
 const runner = new Listr(
   allTools.map((tool) => ({
     title: tool.name,
-    task: async () => {
+    task: async (_, task) => {
+      const before = tool.versioned ? await getVersion(tool.command) : null;
       try {
         await execa(tool.command, tool.args);
       } catch (err) {
         hasFailures = true;
         const e = err as ExecaError;
         throw new Error(e.stderr || e.shortMessage || String(e));
+      }
+      if (before) {
+        const after = await getVersion(tool.command);
+        task.title =
+          after && after !== before
+            ? `${tool.name}  ${before} → ${after}`
+            : `${tool.name}  up to date (${after ?? before})`;
       }
     },
   })),
