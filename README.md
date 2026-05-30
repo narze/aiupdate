@@ -35,7 +35,9 @@ Tools not installed on your machine are silently skipped.
 
 ## Contributing
 
-To add a new tool, open `src/cli.ts` and add one line to `AI_TOOLS`:
+To add a new tool, use the `/add-agent` skill in Claude Code — it walks through verification, adds the entry to `AI_TOOLS`, builds, and commits.
+
+If adding manually, open `src/cli.ts` and append one line to `AI_TOOLS`:
 
 ```typescript
 { name: 'mytool', command: 'mytool', args: ['update'], versioned: true },
