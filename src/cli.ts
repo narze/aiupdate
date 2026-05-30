@@ -43,14 +43,20 @@ async function getVersion(command: string): Promise<string | null> {
 }
 
 const targetArgs = process.argv.slice(2);
-const selectedAITools =
-  targetArgs.length > 0 ? AI_TOOLS.filter((t) => targetArgs.includes(t.name)) : AI_TOOLS;
+const skillsOnly = targetArgs.length === 1 && targetArgs[0] === 'skills';
+const includeSkills = targetArgs.length === 0 || targetArgs.includes('skills');
+const aiToolTargets = targetArgs.filter((a) => a !== 'skills');
+const selectedAITools = skillsOnly
+  ? []
+  : aiToolTargets.length > 0
+    ? AI_TOOLS.filter((t) => aiToolTargets.includes(t.name))
+    : AI_TOOLS;
 
 const checks = await Promise.all(
   selectedAITools.map(async (t) => ({ tool: t, installed: await isInstalled(t.command) })),
 );
 const availableTools = checks.filter((c) => c.installed).map((c) => c.tool);
-const allTools = [...availableTools, SKILLS_TASK];
+const allTools = includeSkills ? [...availableTools, SKILLS_TASK] : availableTools;
 
 let hasFailures = false;
 

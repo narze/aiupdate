@@ -8,8 +8,9 @@ Updates all AI agent CLIs and skills concurrently.
 pnpm run build   # compile src/cli.ts → dist/cli.js
 pnpm run dev     # run without building (tsx)
 aiup             # update all tools + skills
-aiup claude      # target a single tool
-aiup claude codex  # target multiple tools
+aiup claude      # target a single tool (skills skipped)
+aiup claude codex  # target multiple tools (skills skipped)
+aiup skills      # update skills only
 ```
 
 ## Adding a new tool
