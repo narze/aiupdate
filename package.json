@@ -1,6 +1,6 @@
 {
   "name": "aiup",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Update all your AI agent CLIs and skills concurrently",
   "type": "module",
   "bin": {
