@@ -1,5 +1,8 @@
+import { mkdtemp, writeFile, chmod, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { selectTools, run, formatTitle, AI_TOOLS, SKILLS_TASK } from './cli.js';
+import { selectTools, run, formatTitle, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
 
 const allInstalled: (cmd: string) => Promise<boolean> = async () => true;
 const noneInstalled: (cmd: string) => Promise<boolean> = async () => false;
@@ -23,6 +26,22 @@ describe('formatTitle', () => {
 
   it('returns plain name when before is null (not versioned)', () => {
     expect(formatTitle('skills', null, null)).toBe('skills');
+  });
+});
+
+describe('getVersion', () => {
+  it('extracts versions from stderr', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'aiupdate-'));
+    const command = join(dir, 'version-stderr');
+
+    try {
+      await writeFile(command, "#!/usr/bin/env node\nprocess.stderr.write('fake 9.8.7\\n');\n");
+      await chmod(command, 0o755);
+
+      await expect(getVersion(command)).resolves.toBe('9.8.7');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

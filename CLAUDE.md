@@ -26,6 +26,7 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 | opencode | `opencode` | `upgrade` |
 | cursor-agent | `cursor-agent` | `update` |
 | copilot | `copilot` | `update` |
+| pi | `pi` | `update pi` |
 
 ## Key files
 
@@ -34,4 +35,4 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 
 ## Versioning
 
-`getVersion` extracts the first `/\d+\.\d+\.\d+/` match from `<tool> --version` stdout. If the output format doesn't match, set `versioned: false`.
+`getVersion` extracts the first `/\d+\.\d+\.\d+/` match from `<tool> --version` stdout or stderr. If the output format doesn't match, set `versioned: false`.
