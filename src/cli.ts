@@ -25,8 +25,8 @@ export const AI_TOOLS: Tool[] = [
 
 export const SKILLS_TASK: Tool = {
   name: 'skills',
-  command: 'skills',
-  args: ['update', '-g', '-p', '-y'],
+  command: 'npx',
+  args: ['--yes', 'skills', 'update', '-g', '-p', '-y'],
 };
 
 async function defaultChecker(command: string): Promise<boolean> {
