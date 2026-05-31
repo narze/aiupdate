@@ -2,6 +2,8 @@
 
 Update all your AI agent CLIs and skills concurrently.
 
+https://github.com/user-attachments/assets/f4bdd8cb-9c70-4858-a6d1-8ca07d0eadb2
+
 ## Usage
 
 ```bash
