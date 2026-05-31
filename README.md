@@ -31,6 +31,7 @@ Each tool runs concurrently. After updating, aiupdate shows the version change (
 | [OpenCode](https://opencode.ai) | `opencode upgrade` |
 | [Cursor Agent](https://cursor.com) | `cursor-agent update` |
 | [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) | `copilot update` |
+| [pi](https://pi.dev/) | `pi update pi` |
 | [skills](https://github.com/anthropics/skills) | `npx skills update -g -p -y` |
 
 Tools not installed on your machine are silently skipped.

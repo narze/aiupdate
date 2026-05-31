@@ -21,6 +21,7 @@ export const AI_TOOLS: Tool[] = [
   { name: 'opencode', command: 'opencode', args: ['upgrade'], versioned: true },
   { name: 'cursor-agent', command: 'cursor-agent', args: ['update'], versioned: true },
   { name: 'copilot', command: 'copilot', args: ['update'], versioned: true },
+  { name: 'pi', command: 'pi', args: ['update', 'pi'], versioned: true },
 ];
 
 export const SKILLS_TASK: Tool = {
@@ -38,10 +39,10 @@ async function defaultChecker(command: string): Promise<boolean> {
   }
 }
 
-async function getVersion(command: string): Promise<string | null> {
+export async function getVersion(command: string): Promise<string | null> {
   try {
-    const { stdout } = await execa(command, ['--version']);
-    const match = stdout.match(/\d+\.\d+\.\d+/);
+    const { stdout, stderr } = await execa(command, ['--version']);
+    const match = `${stdout}\n${stderr}`.match(/\d+\.\d+\.\d+/);
     return match ? match[0] : null;
   } catch {
     return null;
