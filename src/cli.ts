@@ -25,8 +25,8 @@ export const AI_TOOLS: Tool[] = [
 
 export const SKILLS_TASK: Tool = {
   name: 'skills',
-  command: 'npx',
-  args: ['--yes', 'skills', 'update', '-g', '-p', '-y'],
+  command: 'skills',
+  args: ['update', '-g', '-p', '-y'],
 };
 
 async function defaultChecker(command: string): Promise<boolean> {
@@ -75,11 +75,11 @@ export async function run(
 ): Promise<boolean> {
   const { selectedAITools, includeSkills } = selectTools(targetArgs);
 
+  const toolsToCheck = includeSkills ? [...selectedAITools, SKILLS_TASK] : selectedAITools;
   const checks = await Promise.all(
-    selectedAITools.map(async (t) => ({ tool: t, installed: await checker(t.command) })),
+    toolsToCheck.map(async (t) => ({ tool: t, installed: await checker(t.command) })),
   );
-  const availableTools = checks.filter((c) => c.installed).map((c) => c.tool);
-  const allTools = includeSkills ? [...availableTools, SKILLS_TASK] : availableTools;
+  const allTools = checks.filter((c) => c.installed).map((c) => c.tool);
 
   let hasFailures = false;
 

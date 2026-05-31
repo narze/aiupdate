@@ -111,7 +111,16 @@ describe('run', () => {
 
     expect(calls).toContainEqual(['claude', ['update']]);
     expect(calls).not.toContainEqual(['codex', expect.any(Array)]);
-    expect(calls).toContainEqual([SKILLS_TASK.command, SKILLS_TASK.args]);
+    expect(calls).not.toContainEqual([SKILLS_TASK.command, SKILLS_TASK.args]);
+  });
+
+  it('skips skills when skills is not installed', async () => {
+    const calls: [string, string[]][] = [];
+    const executor = async (cmd: string, args: string[]) => { calls.push([cmd, args]); };
+
+    await run(['skills'], executor, noneInstalled);
+
+    expect(calls).toHaveLength(0);
   });
 
   it('returns true when all commands succeed', async () => {
