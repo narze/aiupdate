@@ -14,6 +14,7 @@ interface Tool {
 export type Executor = (command: string, args: string[]) => Promise<void>;
 export type Checker = (command: string) => Promise<boolean>;
 export type Versioner = (command: string) => Promise<string | null>;
+export type Logger = (message: string) => void;
 
 export const AI_TOOLS: Tool[] = [
   { name: 'claude', command: 'claude', args: ['update'], versioned: true },
@@ -74,6 +75,7 @@ export async function run(
   executor: Executor = async (cmd, args) => { await execa(cmd, args); },
   checker: Checker = defaultChecker,
   versioner: Versioner = getVersion,
+  logger: Logger = (message) => console.error(message),
 ): Promise<boolean> {
   const { selectedAITools, includeSkills } = selectTools(targetArgs);
 
@@ -83,7 +85,7 @@ export async function run(
   );
   const allTools = checks.filter((c) => c.installed).map((c) => c.tool);
 
-  let hasFailures = false;
+  const failures: { name: string; message: string }[] = [];
 
   const runner = new Listr(
     allTools.map((tool) => ({
@@ -93,9 +95,10 @@ export async function run(
         try {
           await executor(tool.command, tool.args);
         } catch (err) {
-          hasFailures = true;
           const e = err as ExecaError;
-          throw new Error(e.stderr || e.shortMessage || String(e));
+          const message = e.stderr || e.shortMessage || String(e);
+          failures.push({ name: tool.name, message });
+          throw new Error(message);
         }
         if (before) {
           const after = await versioner(tool.command);
@@ -107,7 +110,16 @@ export async function run(
   );
 
   await runner.run().catch(() => {});
-  return !hasFailures;
+
+  if (failures.length > 0) {
+    logger('');
+    logger(`Errors (${failures.length}):`);
+    for (const failure of failures) {
+      logger(`  - ${failure.name}: ${failure.message}`);
+    }
+  }
+
+  return failures.length === 0;
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {

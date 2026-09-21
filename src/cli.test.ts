@@ -197,4 +197,24 @@ describe('run', () => {
 
     expect(calls).toHaveLength(0);
   });
+
+  it('logs a summary naming every failed tool', async () => {
+    const logs: string[] = [];
+    const executor = async (cmd: string) => {
+      if (cmd === 'claude') throw new Error('[unauthenticated] Error');
+    };
+
+    await run(['claude', 'codex'], executor, allInstalled, undefined, (msg) => logs.push(msg));
+
+    expect(logs.join('\n')).toContain('claude: Error: [unauthenticated] Error');
+  });
+
+  it('does not log a summary when everything succeeds', async () => {
+    const logs: string[] = [];
+    const executor = async () => {};
+
+    await run(['claude'], executor, allInstalled, undefined, (msg) => logs.push(msg));
+
+    expect(logs).toHaveLength(0);
+  });
 });
