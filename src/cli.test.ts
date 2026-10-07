@@ -2,14 +2,21 @@ import { mkdtemp, writeFile, chmod, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { selectTools, run, formatTitle, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
+import {
+  selectTools, run, formatTitle, getVersion, planUpdate, AI_TOOLS, SKILLS_TASK, type Checker,
+} from './cli.js';
 
-const allInstalled: (cmd: string) => Promise<boolean> = async () => true;
-const noneInstalled: (cmd: string) => Promise<boolean> = async () => false;
+const native = { via: 'native' } as const;
+const allInstalled: Checker = async () => native;
+const noneInstalled: Checker = async () => null;
 const onlyInstalled =
-  (...names: string[]) =>
+  (...names: string[]): Checker =>
   async (cmd: string) =>
-    names.includes(cmd);
+    names.includes(cmd) ? native : null;
+const viaMise =
+  (tools: Record<string, string>): Checker =>
+  async (cmd: string) =>
+    tools[cmd] ? { via: 'mise', tool: tools[cmd] } : native;
 
 describe('formatTitle', () => {
   it('shows version bump', () => {
@@ -216,5 +223,45 @@ describe('run', () => {
     await run(['claude'], executor, allInstalled, undefined, (msg) => logs.push(msg));
 
     expect(logs).toHaveLength(0);
+  });
+});
+
+describe('mise installs', () => {
+  it('plans a mise upgrade for tools installed via mise', () => {
+    const claude = AI_TOOLS.find((t) => t.name === 'claude')!;
+    expect(planUpdate(claude, { via: 'mise', tool: 'npm:@anthropic-ai/claude-code' })).toEqual({
+      tool: claude,
+      label: 'claude (mise)',
+      update: ['mise', ['upgrade', 'npm:@anthropic-ai/claude-code']],
+      version: ['mise', ['exec', 'npm:@anthropic-ai/claude-code', '--', 'claude', '--version']],
+    });
+  });
+
+  it('keeps the native update command for skills even if npx comes from mise', () => {
+    const plan = planUpdate(SKILLS_TASK, { via: 'mise', tool: 'node' });
+    expect(plan.update).toEqual([SKILLS_TASK.command, SKILLS_TASK.args]);
+  });
+
+  it('runs mise upgrade instead of the self-update command', async () => {
+    const calls: [string, string[]][] = [];
+    const executor = async (cmd: string, args: string[]) => { calls.push([cmd, args]); };
+
+    await run(['claude', 'pi'], executor, viaMise({ pi: 'npm:@earendil-works/pi-coding-agent' }), async () => null);
+
+    expect(calls).toContainEqual(['claude', ['update']]);
+    expect(calls).toContainEqual(['mise', ['upgrade', 'npm:@earendil-works/pi-coding-agent']]);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('checks versions through mise exec', async () => {
+    const versionCalls: [string, string[] | undefined][] = [];
+    const versioner = async (cmd: string, args?: string[]) => { versionCalls.push([cmd, args]); return '1.0.0'; };
+
+    await run(['pi'], async () => {}, viaMise({ pi: 'pi' }), versioner);
+
+    expect(versionCalls).toEqual([
+      ['mise', ['exec', 'pi', '--', 'pi', '--version']],
+      ['mise', ['exec', 'pi', '--', 'pi', '--version']],
+    ]);
   });
 });

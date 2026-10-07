@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'url';
 import { realpathSync } from 'fs';
+import { sep } from 'path';
 import { Listr } from 'listr2';
 import { execa, ExecaError } from 'execa';
 
@@ -11,9 +12,11 @@ interface Tool {
   versioned?: boolean;
 }
 
+export type Installation = { via: 'native' } | { via: 'mise'; tool: string };
+
 export type Executor = (command: string, args: string[]) => Promise<void>;
-export type Checker = (command: string) => Promise<boolean>;
-export type Versioner = (command: string) => Promise<string | null>;
+export type Checker = (command: string) => Promise<Installation | null>;
+export type Versioner = (command: string, args?: string[]) => Promise<string | null>;
 export type Logger = (message: string) => void;
 
 export const AI_TOOLS: Tool[] = [
@@ -32,18 +35,65 @@ export const SKILLS_TASK: Tool = {
   args: ['--yes', 'skills', 'update', '-g', '-p', '-y'],
 };
 
-async function defaultChecker(command: string): Promise<boolean> {
-  try {
-    await execa('which', [command]);
-    return true;
-  } catch {
-    return false;
-  }
+interface MiseInstall {
+  install_path?: string;
+  installed?: boolean;
 }
 
-export async function getVersion(command: string): Promise<string | null> {
+let miseContext: Promise<{ misePath: string; installs: Record<string, MiseInstall[]> } | null> | undefined;
+
+function getMiseContext() {
+  miseContext ??= (async () => {
+    try {
+      const { stdout: misePath } = await execa('which', ['mise']);
+      const { stdout } = await execa('mise', ['ls', '--installed', '--json']);
+      return { misePath: realpathSync(misePath.trim()), installs: JSON.parse(stdout) };
+    } catch {
+      return null;
+    }
+  })();
+  return miseContext;
+}
+
+// Returns the mise tool name (e.g. `npm:@anthropic-ai/claude-code`) that provides
+// the `command` found on PATH, or null if it isn't managed by mise.
+export async function findMiseTool(command: string, commandPath: string): Promise<string | null> {
+  const ctx = await getMiseContext();
+  if (!ctx) return null;
   try {
-    const { stdout, stderr } = await execa(command, ['--version']);
+    const { stdout } = await execa('mise', ['which', command]);
+    const miseBin = realpathSync(stdout.trim());
+    const resolved = realpathSync(commandPath);
+    // PATH resolves either to a mise shim (a link to the mise binary) or,
+    // with `mise activate`, directly into the install dir.
+    if (resolved !== ctx.misePath && resolved !== miseBin) return null;
+    for (const [tool, installs] of Object.entries(ctx.installs)) {
+      for (const install of installs) {
+        if (!install.installed || !install.install_path) continue;
+        const installPath = realpathSync(install.install_path);
+        if (miseBin.startsWith(installPath + sep)) return tool;
+      }
+    }
+  } catch {
+    // not a mise bin
+  }
+  return null;
+}
+
+async function defaultChecker(command: string): Promise<Installation | null> {
+  let commandPath: string;
+  try {
+    commandPath = (await execa('which', [command])).stdout.trim();
+  } catch {
+    return null;
+  }
+  const tool = await findMiseTool(command, commandPath);
+  return tool ? { via: 'mise', tool } : { via: 'native' };
+}
+
+export async function getVersion(command: string, args: string[] = ['--version']): Promise<string | null> {
+  try {
+    const { stdout, stderr } = await execa(command, args);
     const match = `${stdout}\n${stderr}`.match(/\d+\.\d+\.\d+/);
     return match ? match[0] : null;
   } catch {
@@ -70,6 +120,28 @@ export function selectTools(targetArgs: string[]): { selectedAITools: Tool[]; in
   return { selectedAITools, includeSkills };
 }
 
+interface UpdatePlan {
+  tool: Tool;
+  label: string;
+  update: [string, string[]];
+  version: [string, string[]?];
+}
+
+export function planUpdate(tool: Tool, installation: Installation): UpdatePlan {
+  // Skills run through npx, which may itself come from mise-managed node.
+  if (installation.via === 'mise' && tool !== SKILLS_TASK) {
+    return {
+      tool,
+      label: `${tool.name} (mise)`,
+      update: ['mise', ['upgrade', installation.tool]],
+      // Run through `mise exec` so the freshly upgraded version is picked up
+      // even when PATH still points at the old install dir (`mise activate`).
+      version: ['mise', ['exec', installation.tool, '--', tool.command, '--version']],
+    };
+  }
+  return { tool, label: tool.name, update: [tool.command, tool.args], version: [tool.command] };
+}
+
 export async function run(
   targetArgs: string[],
   executor: Executor = async (cmd, args) => { await execa(cmd, args); },
@@ -81,19 +153,21 @@ export async function run(
 
   const toolsToCheck = includeSkills ? [...selectedAITools, SKILLS_TASK] : selectedAITools;
   const checks = await Promise.all(
-    toolsToCheck.map(async (t) => ({ tool: t, installed: await checker(t.command) })),
+    toolsToCheck.map(async (t) => ({ tool: t, installation: await checker(t.command) })),
   );
-  const allTools = checks.filter((c) => c.installed).map((c) => c.tool);
+  const plans = checks
+    .filter((c) => c.installation)
+    .map(({ tool, installation }) => planUpdate(tool, installation!));
 
   const failures: { name: string; message: string }[] = [];
 
   const runner = new Listr(
-    allTools.map((tool) => ({
-      title: tool.name,
+    plans.map(({ tool, label, update, version }) => ({
+      title: label,
       task: async (_, task) => {
-        const before = tool.versioned ? await versioner(tool.command) : null;
+        const before = tool.versioned ? await versioner(...version) : null;
         try {
-          await executor(tool.command, tool.args);
+          await executor(...update);
         } catch (err) {
           const e = err as ExecaError;
           const message = e.stderr || e.shortMessage || String(e);
@@ -101,8 +175,8 @@ export async function run(
           throw new Error(message);
         }
         if (before) {
-          const after = await versioner(tool.command);
-          task.title = formatTitle(tool.name, before, after);
+          const after = await versioner(...version);
+          task.title = formatTitle(label, before, after);
         }
       },
     })),

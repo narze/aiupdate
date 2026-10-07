@@ -34,6 +34,10 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 - `src/cli.ts` — entire implementation (single file)
 - `dist/cli.js` — compiled output, referenced by `bin.aiupdate` in package.json
 
+## mise installs
+
+`defaultChecker` returns `{ via: 'mise', tool }` when the command on PATH is a mise shim or lives in a mise install dir (matched via `mise which` + `mise ls --installed --json`). `planUpdate` then runs `mise upgrade <tool>` and reads versions through `mise exec <tool> -- <command> --version`. The skills task is never routed through mise.
+
 ## Versioning
 
 `getVersion` extracts the first `/\d+\.\d+\.\d+/` match from `<tool> --version` stdout or stderr. If the output format doesn't match, set `versioned: false`.

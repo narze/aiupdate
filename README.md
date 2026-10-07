@@ -37,6 +37,10 @@ Each tool runs concurrently. After updating, aiupdate shows the version change (
 
 Tools not installed on your machine are silently skipped.
 
+### mise
+
+If a tool was installed with [mise](https://mise.jdx.dev) (e.g. `mise use -g npm:@anthropic-ai/claude-code`), aiupdate detects it and runs `mise upgrade <tool>` instead of the tool's self-update command, which often refuses to update installs it doesn't own. Both shims and `mise activate` are supported. Upgrades follow the version requested in your mise config, so a tool pinned to an exact version stays put.
+
 ## Contributing
 
 To add a new tool, use the `/add-agent` skill in Claude Code — it walks through verification, adds the entry to `AI_TOOLS`, builds, and commits.
