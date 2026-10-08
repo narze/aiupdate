@@ -33,6 +33,8 @@ Each tool runs concurrently. After updating, aiupdate shows the version change (
 | [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) | `copilot update` |
 | [pi](https://pi.dev/) | `pi update pi` |
 | [Antigravity](https://github.com/google-antigravity/antigravity-cli) | `agy update` |
+| [Grok Build](https://x.ai/build) | `grok update` |
+| [Omnigent](https://omnigent.ai) | `omnigent upgrade` |
 | [skills](https://github.com/anthropics/skills) | `npx skills update -g -p -y` |
 
 Tools not installed on your machine are silently skipped.
