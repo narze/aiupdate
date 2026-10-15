@@ -25,6 +25,7 @@ export const AI_TOOLS: Tool[] = [
   { name: 'pi', command: 'pi', args: ['update', 'pi'], versioned: true },
   { name: 'agy', command: 'agy', args: ['update'], versioned: true },
   { name: 'grok', command: 'grok', args: ['update'], versioned: true },
+  { name: 'omnigent', command: 'omnigent', args: ['upgrade'], versioned: true },
 ];
 
 export const SKILLS_TASK: Tool = {
