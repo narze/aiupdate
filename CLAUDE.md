@@ -28,6 +28,7 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 | copilot | `copilot` | `update` |
 | pi | `pi` | `update pi` |
 | agy | `agy` | `update` |
+| grok | `grok` | `update` |
 
 ## Key files
 
