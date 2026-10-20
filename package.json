@@ -1,6 +1,6 @@
 {
   "name": "aiupdate",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Update all your AI agent CLIs and skills concurrently",
   "type": "module",
   "bin": {
