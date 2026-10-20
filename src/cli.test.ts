@@ -2,7 +2,13 @@ import { mkdtemp, writeFile, chmod, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { selectTools, run, formatTitle, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
+import { selectTools, run as runCLI, formatTitle, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
+
+// Existing orchestration tests are independent of the machine's installations.
+const run = (...args: Parameters<typeof runCLI>) => {
+  args[5] = async (tool) => tool;
+  return runCLI(...args);
+};
 
 const allInstalled: (cmd: string) => Promise<boolean> = async () => true;
 const noneInstalled: (cmd: string) => Promise<boolean> = async () => false;
