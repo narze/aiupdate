@@ -29,6 +29,7 @@ Use the `/add-agent` skill — see `.claude/skills/add-agent/skill.md` for the f
 | pi | `pi` | `update pi` |
 | agy | `agy` | `update` |
 | grok | `grok` | `update` |
+| omnigent | `omnigent` | `upgrade` |
 
 ## Key files
 
