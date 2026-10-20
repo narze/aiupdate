@@ -39,6 +39,13 @@ Each tool runs concurrently. After updating, aiupdate shows the version change (
 
 Tools not installed on your machine are silently skipped.
 
+Tools installed with [mise](https://mise.jdx.dev/) are detected automatically and
+updated with `mise upgrade <package> --yes` instead of their built-in updater.
+This supports direct mise installations, npm backends, and mise shims. Upgrades
+respect the version range in your mise configuration; pinned versions stay pinned.
+Packages installed globally with npm under a mise-managed Node.js installation
+continue to use their built-in updater.
+
 ## Contributing
 
 To add a new tool, use the `/add-agent` skill in Claude Code — it walks through verification, adds the entry to `AI_TOOLS`, builds, and commits.

@@ -13,8 +13,14 @@ interface Tool {
 
 export type Executor = (command: string, args: string[]) => Promise<void>;
 export type Checker = (command: string) => Promise<boolean>;
-export type Versioner = (command: string) => Promise<string | null>;
+export type Versioner = (command: string, args?: string[]) => Promise<string | null>;
 export type Logger = (message: string) => void;
+interface UpdateCommand {
+  command: string;
+  args: string[];
+  versionArgs?: string[];
+}
+export type UpdateResolver = (tool: Tool) => Promise<UpdateCommand>;
 
 export const AI_TOOLS: Tool[] = [
   { name: 'claude', command: 'claude', args: ['update'], versioned: true },
@@ -43,13 +49,46 @@ async function defaultChecker(command: string): Promise<boolean> {
   }
 }
 
-export async function getVersion(command: string): Promise<string | null> {
+export async function getVersion(command: string, args: string[] = ['--version']): Promise<string | null> {
   try {
-    const { stdout, stderr } = await execa(command, ['--version']);
+    const { stdout, stderr } = await execa(command, args);
     const match = `${stdout}\n${stderr}`.match(/\d+\.\d+\.\d+/);
     return match ? match[0] : null;
   } catch {
     return null;
+  }
+}
+
+async function resolveUpdate(tool: Tool): Promise<UpdateCommand> {
+  if (!tool.versioned) return tool;
+
+  try {
+    const [binary, managedBinary, owner] = await Promise.all([
+      execa('which', [tool.command]),
+      execa('mise', ['which', tool.command]),
+      execa('mise', ['which', tool.command, '--plugin']),
+    ]);
+    const packageName = owner.stdout.trim();
+    // Global npm packages can live inside mise's Node installation. Updating
+    // that runtime would not update the CLI package itself.
+    if (!packageName || ['node', 'bun', 'deno'].includes(packageName.replace(/^.*:/, ''))) return tool;
+
+    const actualPath = realpathSync(binary.stdout.trim());
+    if (actualPath !== realpathSync(managedBinary.stdout.trim())) {
+      // Mise shims are symlinks to the mise executable itself.
+      const mise = await execa('which', ['mise']);
+      if (actualPath !== realpathSync(mise.stdout.trim())) return tool;
+    }
+
+    return {
+      command: 'mise',
+      args: ['upgrade', packageName, '--yes'],
+      // Upgrade can remove the old installation still present in our PATH.
+      versionArgs: ['exec', packageName, '--', tool.command, '--version'],
+    };
+  } catch {
+    // Mise is optional; unavailable or unmanaged tools use their own updater.
+    return tool;
   }
 }
 
@@ -78,6 +117,7 @@ export async function run(
   checker: Checker = defaultChecker,
   versioner: Versioner = getVersion,
   logger: Logger = (message) => console.error(message),
+  updateResolver: UpdateResolver = resolveUpdate,
 ): Promise<boolean> {
   const { selectedAITools, includeSkills } = selectTools(targetArgs);
 
@@ -93,17 +133,19 @@ export async function run(
     allTools.map((tool) => ({
       title: tool.name,
       task: async (_, task) => {
-        const before = tool.versioned ? await versioner(tool.command) : null;
+        const update = await updateResolver(tool);
+        const versionCommand = update.versionArgs ? update.command : tool.command;
+        const before = tool.versioned ? await versioner(versionCommand, update.versionArgs) : null;
         try {
-          await executor(tool.command, tool.args);
+          await executor(update.command, update.args);
         } catch (err) {
           const e = err as ExecaError;
-          const message = e.stderr || e.shortMessage || String(e);
+          const message = String(e.stderr || e.shortMessage || e);
           failures.push({ name: tool.name, message });
           throw new Error(message);
         }
         if (before) {
-          const after = await versioner(tool.command);
+          const after = await versioner(versionCommand, update.versionArgs);
           task.title = formatTitle(tool.name, before, after);
         }
       },
