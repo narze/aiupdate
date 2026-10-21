@@ -2,7 +2,7 @@ import { mkdtemp, writeFile, chmod, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { selectTools, run as runCLI, formatTitle, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
+import { selectTools, run as runCLI, formatTitle, formatSkillsTitle, parseUpdatedSkills, getVersion, AI_TOOLS, SKILLS_TASK } from './cli.js';
 
 // Existing orchestration tests are independent of the machine's installations.
 const run = (...args: Parameters<typeof runCLI>) => {
@@ -32,6 +32,45 @@ describe('formatTitle', () => {
 
   it('returns plain name when before is null (not versioned)', () => {
     expect(formatTitle('skills', null, null)).toBe('skills');
+  });
+});
+
+describe('parseUpdatedSkills', () => {
+  it('extracts updated skill names and strips ANSI codes', () => {
+    const output = [
+      '\u001b[1mGlobal Skills\u001b[0m',
+      '  \u001b[38;5;145m✓\u001b[0m Updated find-skills',
+      '  \u001b[38;5;145m✓\u001b[0m Updated brainstorming',
+      '  \u001b[2m✗ Failed to update broken\u001b[0m',
+      '\u001b[38;5;145m✓ Updated 2 skill(s)\u001b[0m',
+    ].join('\n');
+    expect(parseUpdatedSkills(output)).toEqual(['find-skills', 'brainstorming']);
+  });
+
+  it('returns an empty list when nothing was updated', () => {
+    expect(parseUpdatedSkills('✓ All global skills are up to date')).toEqual([]);
+  });
+});
+
+describe('formatSkillsTitle', () => {
+  it('returns plain name when nothing was updated', () => {
+    expect(formatSkillsTitle([])).toBe('skills');
+  });
+
+  it('lists every skill when there are five or fewer', () => {
+    expect(formatSkillsTitle(['a', 'b'])).toBe('skills  /a, /b updated');
+  });
+
+  it('summarizes the rest after five skills', () => {
+    expect(formatSkillsTitle(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])).toBe(
+      'skills  /a, /b, /c, /d, /e, and 5 other skills updated',
+    );
+  });
+
+  it('uses singular for one other skill', () => {
+    expect(formatSkillsTitle(['a', 'b', 'c', 'd', 'e', 'f'])).toBe(
+      'skills  /a, /b, /c, /d, /e, and 1 other skill updated',
+    );
   });
 });
 
@@ -89,7 +128,7 @@ describe('run', () => {
     const calls: [string, string[]][] = [];
     const executor = async (cmd: string, args: string[]) => { calls.push([cmd, args]); };
 
-    await run([], executor, allInstalled);
+    await run([], executor, allInstalled, async () => null);
 
     for (const tool of AI_TOOLS) {
       expect(calls).toContainEqual([tool.command, tool.args]);
