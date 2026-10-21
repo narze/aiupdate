@@ -11,7 +11,7 @@ interface Tool {
   versioned?: boolean;
 }
 
-export type Executor = (command: string, args: string[]) => Promise<void>;
+export type Executor = (command: string, args: string[]) => Promise<string | void>;
 export type Checker = (command: string) => Promise<boolean>;
 export type Versioner = (command: string, args?: string[]) => Promise<string | null>;
 export type Logger = (message: string) => void;
@@ -99,6 +99,23 @@ export function formatTitle(name: string, before: string | null, after: string |
     : `${name}  up to date (${after ?? before})`;
 }
 
+const MAX_LISTED_SKILLS = 5;
+
+export function parseUpdatedSkills(output: string): string[] {
+  const plain = output.replace(/\u001b\[[0-9;]*m/g, '');
+  return [...plain.matchAll(/^\s*✓ Updated (\S+)\s*$/gm)]
+    .map((m) => m[1])
+    .filter((name) => !/^\d+$/.test(name));
+}
+
+export function formatSkillsTitle(names: string[]): string {
+  if (names.length === 0) return SKILLS_TASK.name;
+  const listed = names.slice(0, MAX_LISTED_SKILLS).map((n) => `/${n}`).join(', ');
+  const rest = names.length - MAX_LISTED_SKILLS;
+  const summary = rest > 0 ? `${listed}, and ${rest} other skill${rest === 1 ? '' : 's'} updated` : `${listed} updated`;
+  return `${SKILLS_TASK.name}  ${summary}`;
+}
+
 export function selectTools(targetArgs: string[]): { selectedAITools: Tool[]; includeSkills: boolean } {
   const skillsOnly = targetArgs.length === 1 && targetArgs[0] === 'skills';
   const includeSkills = targetArgs.length === 0 || targetArgs.includes('skills');
@@ -113,7 +130,7 @@ export function selectTools(targetArgs: string[]): { selectedAITools: Tool[]; in
 
 export async function run(
   targetArgs: string[],
-  executor: Executor = async (cmd, args) => { await execa(cmd, args); },
+  executor: Executor = async (cmd, args) => (await execa(cmd, args)).stdout,
   checker: Checker = defaultChecker,
   versioner: Versioner = getVersion,
   logger: Logger = (message) => console.error(message),
@@ -136,13 +153,17 @@ export async function run(
         const update = await updateResolver(tool);
         const versionCommand = update.versionArgs ? update.command : tool.command;
         const before = tool.versioned ? await versioner(versionCommand, update.versionArgs) : null;
+        let output: string | void;
         try {
-          await executor(update.command, update.args);
+          output = await executor(update.command, update.args);
         } catch (err) {
           const e = err as ExecaError;
           const message = String(e.stderr || e.shortMessage || e);
           failures.push({ name: tool.name, message });
           throw new Error(message);
+        }
+        if (tool === SKILLS_TASK) {
+          task.title = formatSkillsTitle(parseUpdatedSkills(output ?? ''));
         }
         if (before) {
           const after = await versioner(versionCommand, update.versionArgs);
