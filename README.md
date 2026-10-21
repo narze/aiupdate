@@ -37,7 +37,8 @@ Each tool runs concurrently. After updating, aiupdate shows the version change (
 | [Omnigent](https://omnigent.ai) | `omnigent upgrade` |
 | [skills](https://github.com/anthropics/skills) | `npx skills update -g -p -y` |
 
-Tools not installed on your machine are silently skipped.
+Tools not installed on your machine are silently skipped, including mise shims
+with no active version configured.
 
 Tools installed with [mise](https://mise.jdx.dev/) are detected automatically and
 updated with `mise upgrade <package> --yes` instead of their built-in updater.

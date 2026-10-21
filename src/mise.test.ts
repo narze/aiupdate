@@ -79,6 +79,19 @@ describe('mise installations', () => {
     expect(await calls()).toContainEqual(['mise', ['upgrade', 'opencode', '--yes']]);
   });
 
+  it('skips a Grok mise shim with no active version', async () => {
+    const calls = await fixture({ tool: 'grok', owner: 'grok', shim: true, unavailable: true });
+    const executor = vi.fn();
+    const versioner = vi.fn();
+    const logger = vi.fn();
+
+    expect(await run(['grok'], executor, undefined, versioner, logger)).toBe(true);
+    expect(executor).not.toHaveBeenCalled();
+    expect(versioner).not.toHaveBeenCalled();
+    expect(logger).not.toHaveBeenCalled();
+    expect(await calls()).toEqual([]);
+  });
+
   it('upgrades Codex through its npm backend instead of codex update', async () => {
     const calls = await fixture({ tool: 'codex', owner: 'npm:@openai/codex' });
     expect(await run(['codex'])).toBe(true);

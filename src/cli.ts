@@ -41,12 +41,26 @@ export const SKILLS_TASK: Tool = {
 };
 
 async function defaultChecker(command: string): Promise<boolean> {
+  let binaryPath: string;
   try {
-    await execa('which', [command]);
-    return true;
+    const binary = await execa('which', [command]);
+    binaryPath = binary.stdout.trim();
   } catch {
     return false;
   }
+
+  try {
+    const mise = await execa('which', ['mise']);
+    if (realpathSync(binaryPath) === realpathSync(mise.stdout.trim())) {
+      // A leftover shim can exist even when no version is active. Treat it
+      // like an uninstalled tool rather than invoking its broken updater.
+      const resolved = await execa('mise', ['which', command], { reject: false });
+      return resolved.exitCode === 0;
+    }
+  } catch {
+    // Mise is optional; ordinary binaries still count as installed.
+  }
+  return true;
 }
 
 export async function getVersion(command: string, args: string[] = ['--version']): Promise<string | null> {
